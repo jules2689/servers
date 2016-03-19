@@ -1,12 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env ruby
 
-set -e
-
-if [ "$1" == 'list' ]; then
-  echo 'Available templates'
-  echo '===================='
-  find servers/*.json -type f -execdir echo '{}' ';' | cut -d '.' -f 1
+if ARGV[0] == "list"
+  puts 'Available templates'
+  puts '===================='
+  Dir['servers/*.json'].each do |dir|
+    puts File.basename(dir, ".json")
+  end
 else
-  cd servers
-  packer build $1.json
-fi
+  env = { "DIGITALOCEAN_API_TOKEN" => ENV['DIGITALOCEAN_API_TOKEN'] }
+  system(env, "cd servers && packer build #{ARGV[0]}.json")
+end

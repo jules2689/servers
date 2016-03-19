@@ -3,7 +3,7 @@
 set -ex
 
 # Install some necessary dependencies
-sudo apt-get install -y libssl-dev libreadline-dev zlib1g-dev make
+sudo apt-get install -y git-core libssl-dev libreadline-dev zlib1g-dev make
 
 # Install rbenv
 git clone https://github.com/rbenv/rbenv.git /home/deploy/.rbenv
