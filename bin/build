@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -e
+
+cd servers
+packer build $1.json

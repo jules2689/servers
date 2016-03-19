@@ -2,8 +2,6 @@
 
 set -ex
 
-whoami
-
 # SSH
 mkdir ~/.ssh
 chmod 700 ~/.ssh
@@ -37,5 +35,3 @@ chown -R deploy ~/.ssh
 echo "START"
 cat ~/.ssh/authorized_keys
 echo "END"
-
-sleep 5
