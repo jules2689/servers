@@ -2,5 +2,11 @@
 
 set -e
 
-cd servers
-packer build $1.json
+if [ "$1" == 'list' ]; then
+  echo 'Available templates'
+  echo '===================='
+  find servers/*.json -type f -execdir echo '{}' ';' | cut -d '.' -f 1
+else
+  cd servers
+  packer build $1.json
+fi
