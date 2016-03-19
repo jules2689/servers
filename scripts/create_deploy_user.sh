@@ -6,7 +6,6 @@ addgroup deploy
 
 # Add User
 useradd deploy --create-home --shell /bin/bash -g deploy
-echo 'deploy:password' | chpasswd
 
 # Add to Sudo
 gpasswd -a deploy sudo

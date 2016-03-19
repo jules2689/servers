@@ -16,7 +16,13 @@
       "execute_command": "chmod +x {{ .Path }}; sudo -S -u deploy -i /bin/bash -l -c '{{ .Vars }} {{ .Path }}'",
       "type": "shell",
       "scripts": [
-        "scripts/ssh.sh"
+        "scripts/ssh.sh",
+        "scripts/ruby.sh",
+        "scripts/gems.sh",
+        "scripts/nginx.sh",
+        "scripts/postgres.sh",
+        "scripts/system_update.sh",
+        "scripts/cleanup.sh"
       ]
     }
   ]
