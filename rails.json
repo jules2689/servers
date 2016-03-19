@@ -1,0 +1,23 @@
+{
+  "builders": [
+    {
+      "type": "digitalocean",
+      "region": "nyc3",
+      "size": "512mb",
+      "image": "ubuntu-14-04-x64"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "script": "scripts/create_deploy_user.sh"
+    },
+    {
+      "execute_command": "chmod +x {{ .Path }}; sudo -S -u deploy -i /bin/bash -l -c '{{ .Vars }} {{ .Path }}'",
+      "type": "shell",
+      "scripts": [
+        "scripts/ssh.sh"
+      ]
+    }
+  ]
+}
