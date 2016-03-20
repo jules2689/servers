@@ -20,4 +20,4 @@ cd chruby-0.3.9/
 sudo make install
 
 # Source it all
-source /tmp/env.sh
+source /tmp/ruby_env.sh

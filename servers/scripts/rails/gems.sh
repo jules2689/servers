@@ -2,9 +2,7 @@
 
 set -ex
 
-source /tmp/env.sh
-
-chruby ruby-2.3.0
+source /tmp/ruby_env.sh
 
 gem install rails -V --no-ri --no-rdoc
 gem install bundler -V --no-ri --no-rdoc

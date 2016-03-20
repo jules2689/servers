@@ -8,3 +8,5 @@ source /usr/local/share/chruby/auto.sh
 EOF
 
 exec $SHELL
+
+chruby ruby-2.3.0
