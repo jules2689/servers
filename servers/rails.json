@@ -7,23 +7,33 @@
       "image": "ubuntu-14-04-x64"
     }
   ],
+  "min_packer_version": "0.8.6",
   "provisioners": [
     {
+      "destination": "/tmp",
+      "source": "scripts/support/",
+      "type": "file"
+    },
+    {
       "type": "shell",
-      "script": "scripts/create_deploy_user.sh"
+      "script": "scripts/shared/create_deploy_user.sh"
     },
     {
       "execute_command": "chmod +x {{ .Path }}; sudo -S -u deploy -i /bin/bash -l -c '{{ .Vars }} {{ .Path }}'",
       "type": "shell",
       "scripts": [
-        "scripts/system_update.sh",
-        "scripts/ssh.sh",
-        "scripts/ruby.sh",
-        "scripts/gems.sh",
-        "scripts/nginx.sh",
-        "scripts/postgres.sh",
-        "scripts/cleanup.sh"
+        "scripts/shared/system_update.sh",
+        "scripts/shared/ssh.sh",
+        "scripts/shared/ruby.sh",
+        "scripts/rails/gems.sh",
+        "scripts/shared/javascript.sh",
+        "scripts/shared/nginx.sh",
+        "scripts/shared/postgres.sh"
       ]
+    },
+    {
+      "type": "shell",
+      "script": "scripts/shared/cleanup.sh"
     }
   ]
 }

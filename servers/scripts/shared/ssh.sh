@@ -35,3 +35,5 @@ chown -R deploy ~/.ssh
 echo "START"
 cat ~/.ssh/authorized_keys
 echo "END"
+
+sudo service ssh restart

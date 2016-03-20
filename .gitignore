@@ -6,3 +6,6 @@ packer_cache/
 
 # Mac
 .DS_Store
+
+# Ruby
+.bundle

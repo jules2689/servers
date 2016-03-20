@@ -2,8 +2,9 @@
 
 set -ex
 
-# Initialize Ruby
-eval "$(/home/deploy/.rbenv/bin/rbenv init -)"
+source /tmp/env.sh
+
+chruby ruby-2.3.0
 
 gem install rails -V --no-ri --no-rdoc
 gem install bundler -V --no-ri --no-rdoc

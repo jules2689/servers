@@ -31,6 +31,15 @@ function install_ubuntu() {
   fi
 }
 
+function run_bundler() {
+  bundle check
+  if [ "$?" == '1' ]; then
+    # GREP_OPTIONS is set by some people and apparently interferes
+    # with compilation of the zk gem.
+    env GREP_OPTIONS='' bundle install --jobs 4
+  fi
+}
+
 if [ "$(uname)" == "Darwin" ]; then
   echo "Mac detected."
   install_darwin
@@ -39,6 +48,9 @@ elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
   install_ubuntu
 elif [ "$(expr substr $(uname -s) 1 10)" == "MINGW32_NT" ]; then
   echo "Windows is unsupported"
+  exit 1
 fi
+
+run_bundler
 
 echo "done."
