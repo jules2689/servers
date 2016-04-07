@@ -9,3 +9,5 @@ packer_cache/
 
 # Ruby
 .bundle
+
+output.file
