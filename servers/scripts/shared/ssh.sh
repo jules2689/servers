@@ -26,14 +26,11 @@ ssh-keygen -R github.com -f ~/.ssh/known_hosts
 ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
 
 # Add my SSH Keys
-wget --no-check-certificate 'https://github.com/jules2689.keys' -O ~/.ssh/authorized_keys
+echo "Fetching SSH keys with $GITHUB_USER"
+wget --no-check-certificate "https://github.com/$GITHUB_USER.keys" -O ~/.ssh/authorized_keys
 
 # Fix any Permissions
 chmod 600 ~/.ssh/authorized_keys
 chown -R deploy ~/.ssh
-
-echo "START"
-cat ~/.ssh/authorized_keys
-echo "END"
 
 sudo service ssh restart

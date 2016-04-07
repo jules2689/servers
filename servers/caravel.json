@@ -3,7 +3,7 @@
     {
       "type": "digitalocean",
       "region": "nyc3",
-      "size": "512mb",
+      "size": "1GB",
       "image": "ubuntu-14-04-x64"
     }
   ],
@@ -24,11 +24,10 @@
       "scripts": [
         "scripts/shared/system_update.sh",
         "scripts/shared/ssh.sh",
-        "scripts/shared/ruby.sh",
-        "scripts/rails/gems.sh",
-        "scripts/shared/javascript.sh",
+        "scripts/caravel/dependencies.sh",
+        "scripts/shared/postgres.sh",
         "scripts/shared/nginx.sh",
-        "scripts/shared/postgres.sh"
+        "scripts/caravel/caravel.sh"
       ],
       "environment_vars": [
         "GITHUB_USER={{user `github_user`}}"

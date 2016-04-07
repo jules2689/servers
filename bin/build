@@ -7,6 +7,12 @@ if ARGV[0] == "list"
     puts File.basename(dir, ".json")
   end
 else
-  env = { "DIGITALOCEAN_API_TOKEN" => ENV['DIGITALOCEAN_API_TOKEN'] }
+  raise "DIGITALOCEAN_API_TOKEN was not set" unless ENV['DIGITALOCEAN_API_TOKEN']
+  github_user = ARGV[1] || `ssh -T git@github.com 2>&1`.scan( /Hi (.*)!/).last.first
+  raise "Github user could not be found from the command 'ssh -T git@github.com' \
+         and was not passed in as the second argument" unless github_user
+
+  puts "Using #{github_user} for SSH keys"
+  env = { "DIGITALOCEAN_API_TOKEN" => ENV['DIGITALOCEAN_API_TOKEN'], "GITHUB_USER" => github_user }
   system(env, "cd servers && packer build #{ARGV[0]}.json")
 end
