@@ -1,4 +1,4 @@
-Attis Server Manager
+Servers
 ===
 
 Creates Digitalocean images using Packer.
