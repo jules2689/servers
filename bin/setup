@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -e
-
 function install_darwin() {
   # make sure homebrew is installed
   which -s brew
@@ -40,6 +38,8 @@ function run_bundler() {
   fi
 }
 
+run_bundler
+
 if [ "$(uname)" == "Darwin" ]; then
   echo "Mac detected."
   install_darwin
@@ -50,7 +50,5 @@ elif [ "$(expr substr $(uname -s) 1 10)" == "MINGW32_NT" ]; then
   echo "Windows is unsupported"
   exit 1
 fi
-
-run_bundler
 
 echo "done."

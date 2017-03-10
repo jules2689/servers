@@ -1,0 +1,31 @@
+{
+  "builders": [
+    {
+      "type": "digitalocean",
+      "region": "tor1",
+      "size": "512mb",
+      "image": "ubuntu-16-04-x64",
+      "ssh_username": "root"
+    }
+  ],
+  "min_packer_version": "0.12.3",
+  "provisioners": [
+    {
+      "type": "shell",
+      "scripts": [
+        "scripts/shared/root.sh",
+        "scripts/shared/system_update.sh",
+        "scripts/shared/ssh.sh",
+        "scripts/docker/docker.sh",
+        "scripts/kubernetes/kubeadm.sh",
+        "scripts/shared/cleanup.sh"
+      ],
+      "environment_vars": [
+        "GITHUB_USER={{user `github_user`}}"
+      ]
+    }
+  ],
+  "variables": {
+    "github_user": "{{env `GITHUB_USER`}}"
+  }
+}

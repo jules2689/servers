@@ -9,4 +9,4 @@ apt-get -y clean
 rm -rf /tmp/*
 
 # Removing leftover leases and persistent rules
-rm /var/lib/dhcp/*
+rm -rf /var/lib/dhcp/*

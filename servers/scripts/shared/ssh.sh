@@ -3,7 +3,7 @@
 set -ex
 
 # SSH
-mkdir ~/.ssh
+mkdir -p ~/.ssh
 chmod 700 ~/.ssh
 touch ~/.ssh/known_hosts
 
@@ -31,6 +31,6 @@ wget --no-check-certificate "https://github.com/$GITHUB_USER.keys" -O ~/.ssh/aut
 
 # Fix any Permissions
 chmod 600 ~/.ssh/authorized_keys
-chown -R deploy ~/.ssh
+chown -R $USER ~/.ssh
 
 sudo service ssh restart

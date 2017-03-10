@@ -1,0 +1,286 @@
+#!/usr/bin/env ruby
+
+require 'byebug'
+require 'droplet_kit'
+require 'sshkit'
+require 'sshkit/dsl'
+include SSHKit::DSL
+
+SSHKit::Backend::Netssh.configure do |ssh|
+  ssh.connection_timeout = 60
+end
+
+####################
+#
+#   Logging
+# 
+####################
+
+def put_header(text, color = "\x1b[36m")
+  put_edge(color, "┏━━ ", text)
+end
+
+def put_edge(color, prefix, text)
+  ptext = "#{color}#{prefix}#{text}"
+  textwidth = printing_width(ptext)
+
+  console = IO.console
+  termwidth = console ? console.winsize[1] : 80
+  termwidth = 30 if termwidth < 30
+
+  if textwidth > termwidth
+    ptext = ptext[0...termwidth]
+    textwidth = termwidth
+  end
+  padwidth = termwidth - textwidth
+  pad = "━" * padwidth
+  formatted = "#{ptext}#{color}#{pad}\x1b[0m\n"
+
+  puts formatted
+end
+
+def log(msg)
+  puts "\x1b[36m┃\x1b[0m " + msg
+end
+
+# ANSI escape sequences (like \x1b[31m) have zero width.
+# when calculating the padding width, we must exclude them.
+def printing_width(str)
+  str.gsub(/\x1b\[[\d;]+[A-z]/, '').size
+end
+
+def put_footer(success, success_color = "\x1b[36m")
+  if success
+    put_edge(success_color, "┗", "")
+  else
+    text = "#{Dev::FAILMOJI}  Failed! Aborting! "
+    put_edge("\x1b[31m", "┗━━ ", text)
+  end
+end
+
+def prompt_user_with_options(question, options)
+  require 'readline'
+
+  log(question)
+  log("Your options are:")
+  options.each_with_index do |v, idx|
+    log("#{idx + 1}) #{v}")
+  end
+  log("Choose a number between 1 and #{options.length}")
+
+  Readline.completion_append_character = " "
+  Readline.completion_proc = nil
+
+  buf = -1
+  available = (1..options.length).to_a
+  until available.include?(buf.to_i)
+    begin
+      buf = Readline.readline("\x1b[34m┃ > \x1b[33m", true)
+    rescue Interrupt
+      nil
+    end
+
+    if buf.nil?
+      STDERR.puts
+      next
+    end
+
+    buf = buf.chomp
+    buf = -1 if buf.empty?
+    buf = -1 if buf.to_i.to_s != buf
+  end
+
+  options[buf.to_i - 1]
+end
+
+####################
+#
+#   Droplet Stuff
+# 
+####################
+
+def get_snapshot(client)
+  snapshots = client.snapshots.all
+
+  # Load snapshots
+  put_header "📸 Loading snapshots"
+  names = snapshots.map(&:name)
+
+  if names.empty?
+    log "[FATAL] No Snapshots found!"
+    put_footer(false)
+    exit 1
+  end
+
+  choice = prompt_user_with_options "Choose a snapshot", names
+  put_footer(true)
+
+  snapshots[names.index(choice)]
+end
+
+def get_droplet_names(client)
+  droplets = client.droplets.all
+  put_header "💧 Loading droplets"
+  kubernetes_names = droplets.map(&:name).select { |name| name.start_with?('kubernetes') }
+  log "Got #{kubernetes_names.size} droplet(s) with names that start with kubernetes"
+  put_footer(true)
+  kubernetes_names
+end
+
+def wait_for_droplet(client, droplet, name)
+  id = droplet.id
+  50.times do
+    begin
+      droplet = client.droplets.find(id: id)
+      break unless droplet.public_ip.nil?
+    rescue DropletKit::Error
+      sleep 5
+      log "Waiting for droplet (#{name}) to be created.."
+    end
+  end
+  raise "Couldnt get droplet public ip in time" if droplet.public_ip.nil?
+  log "Public IP: #{droplet.public_ip}"
+  droplet
+end
+
+def ssh_keys(client)
+  @my_ssh_keys ||= begin
+    log "Getting ssh keys"
+    keys = client.ssh_keys.all.collect(&:fingerprint)
+    log "Found #{keys.size} keys"
+    keys
+  end
+end
+
+def create_master(client, snapshot, kubernetes_names)
+  put_header "Configuring master node"
+  master_join_command = nil
+
+  droplet = if kubernetes_names.any? { |k| k == 'kubernetes-master' }
+    client.droplets.all.detect { |d| d.name == 'kubernetes-master' }
+  else
+    droplet_model = DropletKit::Droplet.new(
+      name: "kubernetes-master",
+      region: 'tor1',
+      size: '1gb',
+      image: snapshot.id,
+      ipv6: false,
+      ssh_keys: ssh_keys(client),
+      tags: %w(kubernetes)
+    )
+    droplet = client.droplets.create(droplet_model)
+
+    log "Waiting for master to be created..."
+    wait_for_droplet(client, droplet, 'master')
+  end
+
+  log "Waiting for ssh to become available..."
+  sleep 30
+
+  # Actually initialize master
+  on "root@#{droplet.public_ip}", in: :sequence, wait: 5 do
+    output = capture('kubeadm init')
+    master_join_command = output.split("\n").last.strip
+    log "Found Master Join Command as \x1b[36m#{master_join_command}\x1b[0m"
+    execute 'kubectl apply -f https://raw.githubusercontent.com/projectcalico/canal/master/k8s-install/kubeadm/canal.yaml'
+    execute 'kubectl create -f https://rawgit.com/kubernetes/dashboard/master/src/deploy/kubernetes-dashboard.yaml'
+  end
+
+  success = !droplet.public_ip.nil? && !master_join_command.nil?
+  put_footer(success)
+  exit 1 unless success
+  master_join_command
+end
+
+def create_node(client, snapshot, kubernetes_names, master_join_command)
+  name = next_name(kubernetes_names)
+
+  # Create Node
+  put_header "Configuring node with name #{name}"
+  droplet_model = DropletKit::Droplet.new(
+    name: name,
+    region: 'tor1',
+    size: '512mb',
+    image: snapshot.id,
+    ipv6: false,
+    ssh_keys: ssh_keys(client),
+    tags: %w(kubernetes)
+  )
+  droplet = client.droplets.create(droplet_model)
+
+  log "Waiting for #{name} to be created..."
+  droplet = wait_for_droplet(client, droplet, name)
+
+  log "Waiting for ssh to become available..."
+  sleep 30
+
+  # Initialize with Kubernetes Master
+  on "root@#{droplet.public_ip}", in: :sequence, wait: 5 do
+    execute :sudo, master_join_command
+  end
+
+  success = !droplet.public_ip.nil?
+  put_footer(success)
+  exit 1 unless success
+
+  name
+end
+
+####################
+#
+#   Helpers
+# 
+####################
+
+def next_name(kubernetes_names)
+  next_node_num = kubernetes_names.collect do |name|
+    next unless name.include?('kubernetes-node-')
+    name['kubernetes-node-'.size..-1].to_i
+  end.compact.max
+  next_node_num ||= 0
+  "kubernetes-node-#{next_node_num + 1}"
+end
+
+def parse_arguments(args)
+  create_master = args.detect { |a| a.start_with?('--master=') } == '--master=true'
+  params = { nodes: 1, create_master: create_master }
+
+  %w(nodes master_token master_ip).each do |arg|
+    param = args.detect { |a| a.start_with?("--#{arg}=") }
+    next unless param
+
+    param = param["--#{arg}=".size..-1]
+    param = param.to_i if arg == 'nodes'
+    params[arg.to_sym] = param
+  end
+
+  params
+end
+
+####################
+#
+#   Script
+# 
+####################
+
+args = parse_arguments(ARGV)
+put_header "Kubernetes Node God"
+log "Running with args #{args.inspect}"
+put_footer(true)
+ARGV.clear
+
+raise "DIGITALOCEAN_API_TOKEN was not set" unless ENV['DIGITALOCEAN_API_TOKEN']
+client = DropletKit::Client.new(access_token: ENV['DIGITALOCEAN_API_TOKEN'])
+
+snapshot = get_snapshot(client)
+kubernetes_names = get_droplet_names(client)
+
+master_join_command = if args[:create_master]
+  create_master(client, snapshot, kubernetes_names)
+else
+  raise "Master IP is nil" unless args[:master_ip]
+  raise "Master Token is nil" unless args[:master_token]
+  "kubeadm join --token=#{args[:master_token]} #{args[:master_ip]}"
+end
+
+args[:nodes].times { |node| kubernetes_names << create_node(client, snapshot, kubernetes_names, master_join_command) }
