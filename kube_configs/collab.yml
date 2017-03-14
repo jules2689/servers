@@ -52,7 +52,7 @@ spec:
     spec:
       containers:
       - name: collab
-        image: jules2689/collab:v1
+        image: jules2689/collab:v1.0.1
         imagePullPolicy: Always
         ports:
           - containerPort: 8080

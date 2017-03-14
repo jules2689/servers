@@ -1,0 +1,131 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: website
+  namespace: website
+  labels:
+    name: website
+    app: website
+    environment: production
+spec:
+  rules:
+  - host: jnadeau.ca
+    http:
+      paths:
+      - backend:
+          serviceName: website
+          servicePort: 80
+      - backend:
+          serviceName: website
+          servicePort: 443
+
+# Service for Application
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: website
+  namespace: website
+  labels:
+    name: website
+    app: website
+    environment: production
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    name: http
+    targetPort: 3000
+  selector:
+    name: website
+    app: website
+    environment: production
+
+# Deployment for Application
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: website
+  namespace: website
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: website
+        app: website
+        environment: production
+    spec:
+      containers:
+      - name: website
+        image: jules2689/website:v1.03
+        imagePullPolicy: Always
+        ports:
+          - containerPort: 3000
+            name: http
+        env:
+          - name: ENV
+            value: production
+          - name: RAILS_ENV
+            value: production
+          - name: RAILS_LOG_TO_STDOUT
+            value: '1'
+          - name: ASSET_HOST
+            value: 'http://website2.jnadeau.ca'
+          - name: DATABASE_URL
+            value: postgres://postgres@postgres.website.svc.cluster.local:5432/website_production
+        volumeMounts:
+          - name: ejson-keys
+            mountPath: "/opt/ejson/keys"
+            readOnly: true
+      volumes:
+      - name: ejson-keys
+        secret:
+          secretName: ejson-keys
+
+# Service for Postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: website
+  labels:
+    name: postgres
+    app: website
+    environment: production
+spec:
+  type: NodePort
+  ports:
+  - port: 5432
+    name: http
+    targetPort: 5432
+  selector:
+    name: postgres
+    app: website
+    environment: production
+
+# Deployment for Postgres
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: website
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: postgres
+        app: website
+        environment: production
+    spec:
+      containers:
+      - name: postgres
+        image: postgres
+        imagePullPolicy: Always
+        ports:
+          - containerPort: 5432
+            name: http

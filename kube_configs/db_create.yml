@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: db-create
+  labels:
+    name: db-create
+    type: command-runner
+    app: website
+    environment: production
+spec:
+  activeDeadlineSeconds: 300
+  restartPolicy: Never
+  containers:
+  - name: command-runner
+    image: jules2689/website:v1.01
+    command: ["bundle", "exec", "rake", "db:create"]
+    volumeMounts:
+      - name: ejson-keys
+        mountPath: /key
+        readOnly: true
+    env:
+      - name: ENV
+        value: production
+      - name: RAILS_ENV
+        value: production
+      - name: RAILS_LOG_TO_STDOUT
+        value: '1'
+      - name: DATABASE_URL
+        value: postgres://postgres@postgres.website.svc.cluster.local:5432/website_production
+    volumeMounts:
+      - name: ejson-keys
+        mountPath: "/opt/ejson/keys"
+        readOnly: true
+  volumes:
+  - name: ejson-keys
+    secret:
+      secretName: ejson-keys
