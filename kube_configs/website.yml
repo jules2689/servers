@@ -9,15 +9,12 @@ metadata:
     environment: production
 spec:
   rules:
-  - host: jnadeau.ca
+  - host: website2.jnadeau.ca
     http:
       paths:
       - backend:
           serviceName: website
           servicePort: 80
-      - backend:
-          serviceName: website
-          servicePort: 443
 
 # Service for Application
 ---
